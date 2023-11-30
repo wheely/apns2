@@ -7,6 +7,9 @@ import "encoding/json"
 // InterruptionLevel defines the value for the payload aps interruption-level
 type EInterruptionLevel string
 
+// LiveActivityEvent defines supported live activity events
+type LiveActivityEvent string
+
 const (
 	// InterruptionLevelPassive is used to indicate that notification be delivered in a passive manner.
 	InterruptionLevelPassive EInterruptionLevel = "passive"
@@ -21,6 +24,12 @@ const (
 	// This interruption level requires an approved entitlement from Apple.
 	// See: https://developer.apple.com/documentation/usernotifications/unnotificationinterruptionlevel/
 	InterruptionLevelCritical EInterruptionLevel = "critical"
+
+	// LiveActivityEventUpdate is used to update live activity.
+	LiveActivityEventUpdate LiveActivityEvent = "update"
+
+	// LiveActivityEventEnd is used to end live activity.
+	LiveActivityEventEnd LiveActivityEvent = "end"
 )
 
 // Payload represents a notification which holds the content that will be
@@ -30,16 +39,21 @@ type Payload struct {
 }
 
 type aps struct {
-	Alert             interface{}        `json:"alert,omitempty"`
-	Badge             interface{}        `json:"badge,omitempty"`
-	Category          string             `json:"category,omitempty"`
-	ContentAvailable  int                `json:"content-available,omitempty"`
-	InterruptionLevel EInterruptionLevel `json:"interruption-level,omitempty"`
-	MutableContent    int                `json:"mutable-content,omitempty"`
-	RelevanceScore    interface{}        `json:"relevance-score,omitempty"`
-	Sound             interface{}        `json:"sound,omitempty"`
-	ThreadID          string             `json:"thread-id,omitempty"`
-	URLArgs           []string           `json:"url-args,omitempty"`
+	Alert             interface{}            `json:"alert,omitempty"`
+	Badge             interface{}            `json:"badge,omitempty"`
+	Category          string                 `json:"category,omitempty"`
+	ContentAvailable  int                    `json:"content-available,omitempty"`
+	InterruptionLevel EInterruptionLevel     `json:"interruption-level,omitempty"`
+	MutableContent    int                    `json:"mutable-content,omitempty"`
+	RelevanceScore    interface{}            `json:"relevance-score,omitempty"`
+	Sound             interface{}            `json:"sound,omitempty"`
+	ThreadID          string                 `json:"thread-id,omitempty"`
+	URLArgs           []string               `json:"url-args,omitempty"`
+	Timestamp         int64                  `json:"timestamp,omitempty"`
+	StaleDate         int64                  `json:"stale-date,omitempty"`
+	DismissalDate     int64                  `json:"dismissal-date,omitempty"`
+	Event             LiveActivityEvent      `json:"event,omitempty"`
+	ContentState      map[string]interface{} `json:"content-state,omitempty"`
 }
 
 type alert struct {
@@ -218,7 +232,7 @@ func (p *Payload) AlertLaunchImage(image string) *Payload {
 // specifiers in loc-key. See Localized Formatted Strings in Apple
 // documentation for more information.
 //
-//  {"aps":{"alert":{"loc-args":args}}}
+//	{"aps":{"alert":{"loc-args":args}}}
 func (p *Payload) AlertLocArgs(args []string) *Payload {
 	p.aps().alert().LocArgs = args
 	return p
@@ -375,6 +389,58 @@ func (p *Payload) RelevanceScore(b float32) *Payload {
 //	{"aps":{"relevance-score":0.1}}
 func (p *Payload) UnsetRelevanceScore() *Payload {
 	p.aps().RelevanceScore = nil
+	return p
+}
+
+// Sets content-state dictionary in payload. The updated or final content for a Live Activity.
+// The content of this dictionary must match the data you describe with your custom ActivityAttributes implementation
+//
+// See: https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/generating_a_remote_notification
+//
+// {"aps":{"content-state":{"key1":"value1","key2":"value2"}}}
+func (p *Payload) ContentState(contentState map[string]interface{}) *Payload {
+	p.aps().ContentState = contentState
+	return p
+}
+
+// The string that describes whether you update or end an ongoing Live Activity with the remote push notification.
+// To update the Live Activity, use update. To end the Live Activity, use end.
+//
+// See: https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/generating_a_remote_notification
+//
+// {"aps":{"event":"update"}}
+func (p *Payload) Event(event LiveActivityEvent) *Payload {
+	p.aps().Event = event
+	return p
+}
+
+// The UNIX timestamp that marks the time when you send the remote notification that updates or ends a Live Activity.
+//
+// See: https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/generating_a_remote_notification
+//
+// {"aps":{"timestamp":1685952000}}
+func (p *Payload) Timestamp(timestamp int64) *Payload {
+	p.aps().Timestamp = timestamp
+	return p
+}
+
+// The UNIX timestamp that represents the date at which a Live Activity becomes stale, or out of date.
+//
+// See: https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/generating_a_remote_notification
+//
+// {"aps":{"stale-date":1685952000}}
+func (p *Payload) StaleDate(staleDate int64) *Payload {
+	p.aps().StaleDate = staleDate
+	return p
+}
+
+// The UNIX timestamp that represents the date at which the system ends a Live Activity and removes it from the Dynamic Island and the Lock Screen.
+//
+// See: https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/generating_a_remote_notification
+//
+// {"aps":{"dismissal-date":1685952000}}
+func (p *Payload) DismissalDate(dismissalDate int64) *Payload {
+	p.aps().DismissalDate = dismissalDate
 	return p
 }
 

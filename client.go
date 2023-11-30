@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/sideshow/apns2/token"
@@ -22,6 +23,8 @@ import (
 const (
 	HostDevelopment = "https://api.sandbox.push.apple.com"
 	HostProduction  = "https://api.push.apple.com"
+
+	LiveActivityTopicHeaderSuffix = "push-type.liveactivity"
 )
 
 // DefaultHost is a mutable var for testing purposes
@@ -215,7 +218,14 @@ func (c *Client) setTokenHeader(r *http.Request) {
 func setHeaders(r *http.Request, n *Notification) {
 	r.Header.Set("Content-Type", "application/json; charset=utf-8")
 	if n.Topic != "" {
-		r.Header.Set("apns-topic", n.Topic)
+		topicHeader := n.Topic
+
+		if n.PushType == PushTypeLiveActivity &&
+			!strings.HasSuffix(topicHeader, LiveActivityTopicHeaderSuffix) {
+			topicHeader = strings.Join([]string{topicHeader, LiveActivityTopicHeaderSuffix}, ".")
+		}
+
+		r.Header.Set("apns-topic", topicHeader)
 	}
 	if n.ApnsID != "" {
 		r.Header.Set("apns-id", n.ApnsID)
@@ -234,5 +244,4 @@ func setHeaders(r *http.Request, n *Notification) {
 	} else {
 		r.Header.Set("apns-push-type", string(PushTypeAlert))
 	}
-
 }
