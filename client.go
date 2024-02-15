@@ -63,10 +63,11 @@ var DialTLS = func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 
 // Client represents a connection with the APNs
 type Client struct {
-	Host        string
-	Certificate tls.Certificate
-	Token       *token.Token
-	HTTPClient  *http.Client
+	Host             string
+	Certificate      tls.Certificate
+	Token            *token.Token
+	HTTPClient       *http.Client
+	requestCallbacks []func(*http.Request)
 }
 
 // A Context carries a deadline, a cancellation signal, and other values across
@@ -136,6 +137,11 @@ func NewTokenClient(token *token.Token) *Client {
 	}
 }
 
+// AddRequestCallback add request callback which runs before making request.
+func (c *Client) AddRequestCallback(callback func(req *http.Request)) {
+	c.requestCallbacks = append(c.requestCallbacks, callback)
+}
+
 // Development sets the Client to use the APNs development push endpoint.
 func (c *Client) Development() *Client {
 	c.Host = HostDevelopment
@@ -185,6 +191,10 @@ func (c *Client) PushWithContext(ctx Context, n *Notification) (*Response, error
 	}
 
 	setHeaders(request, n)
+
+	for _, requestCallback := range c.requestCallbacks {
+		requestCallback(request)
+	}
 
 	response, err := c.HTTPClient.Do(request)
 	if err != nil {
