@@ -2,7 +2,9 @@ package payload_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/sideshow/apns2/payload"
 	"github.com/stretchr/testify/assert"
@@ -234,4 +236,41 @@ func TestCombined(t *testing.T) {
 	payload := NewPayload().Alert("hello").Badge(1).Sound("Default.caf").InterruptionLevel(InterruptionLevelActive).RelevanceScore(0.1).Custom("key", "val")
 	b, _ := json.Marshal(payload)
 	assert.Equal(t, `{"aps":{"alert":"hello","badge":1,"interruption-level":"active","relevance-score":0.1,"sound":"Default.caf"},"key":"val"}`, string(b))
+}
+
+func TestContentState(t *testing.T) {
+	payload := NewPayload().ContentState(map[string]interface{}{
+		"content": "bar",
+		"state":   "new",
+		"title":   "foo",
+	})
+	b, _ := json.Marshal(payload)
+	assert.Equal(t, `{"aps":{"content-state":{"content":"bar","state":"new","title":"foo"}}}`, string(b))
+}
+
+func TestEvent(t *testing.T) {
+	payload := NewPayload().Event(LiveActivityEventUpdate)
+	b, _ := json.Marshal(payload)
+	assert.Equal(t, `{"aps":{"event":"update"}}`, string(b))
+}
+
+func TestTimestamp(t *testing.T) {
+	timestamp := time.Now().Unix()
+	payload := NewPayload().Timestamp(timestamp)
+	b, _ := json.Marshal(payload)
+	assert.Equal(t, fmt.Sprintf(`{"aps":{"timestamp":%d}}`, timestamp), string(b))
+}
+
+func TestStaleDate(t *testing.T) {
+	timestamp := time.Now().Unix()
+	payload := NewPayload().StaleDate(timestamp)
+	b, _ := json.Marshal(payload)
+	assert.Equal(t, fmt.Sprintf(`{"aps":{"stale-date":%d}}`, timestamp), string(b))
+}
+
+func TestDismissalDate(t *testing.T) {
+	timestamp := time.Now().Unix()
+	payload := NewPayload().DismissalDate(timestamp)
+	b, _ := json.Marshal(payload)
+	assert.Equal(t, fmt.Sprintf(`{"aps":{"dismissal-date":%d}}`, timestamp), string(b))
 }

@@ -211,6 +211,34 @@ func TestClientPushWithContext(t *testing.T) {
 	assert.Equal(t, res.ApnsID, apnsID)
 }
 
+func TestClientPushWithContextWithRequestCallbacks(t *testing.T) {
+	n := mockNotification()
+	n.PushType = apns.PushTypeLiveActivity
+	n.Topic = "com.testapp"
+
+	var apnsID = "02ABC856-EF8D-4E49-8F15-7B8A61D978D6"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("apns-id", apnsID)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	mockedClient := mockClient(server.URL)
+
+	mockedClient.AddRequestCallback(func(req *http.Request) {
+		assert.Equal(t, "com.testapp.push-type.liveactivity", req.Header.Get("apns-topic"))
+	})
+
+	mockedClient.AddRequestCallback(func(req *http.Request) {
+		assert.Equal(t, string(apns.PushTypeLiveActivity), req.Header.Get("apns-push-type"))
+	})
+
+	res, err := mockedClient.PushWithContext(context.Background(), n)
+	assert.Nil(t, err)
+	assert.Equal(t, res.ApnsID, apnsID)
+}
+
 func TestClientPushWithNilContext(t *testing.T) {
 	n := mockNotification()
 	var apnsID = "02ABC856-EF8D-4E49-8F15-7B8A61D978D6"
@@ -316,6 +344,75 @@ func TestPushTypeMDMHeader(t *testing.T) {
 	n.PushType = apns.PushTypeMDM
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "mdm", r.Header.Get("apns-push-type"))
+	}))
+	defer server.Close()
+	_, err := mockClient(server.URL).Push(n)
+	assert.NoError(t, err)
+}
+
+func TestPushTypeLiveActivityHeader(t *testing.T) {
+	testCases := []struct {
+		name         string
+		notification *apns.Notification
+		handler      http.Handler
+	}{
+		{
+			name: "when push type is live activity",
+			notification: func() *apns.Notification {
+				n := mockNotification()
+				n.PushType = apns.PushTypeLiveActivity
+				return n
+			}(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "liveactivity", r.Header.Get("apns-push-type"))
+			}),
+		},
+		{
+			name: "when push type is live activity and topic without suffix",
+			notification: func() *apns.Notification {
+				n := mockNotification()
+				n.PushType = apns.PushTypeLiveActivity
+				n.Topic = "com.testapp"
+				return n
+			}(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "liveactivity", r.Header.Get("apns-push-type"))
+				assert.Equal(t, "com.testapp.push-type.liveactivity", r.Header.Get("apns-topic"))
+			}),
+		},
+		{
+			name: "when push type is live activity and topic with suffix",
+			notification: func() *apns.Notification {
+				n := mockNotification()
+				n.PushType = apns.PushTypeLiveActivity
+				n.Topic = "com.testapp.push-type.liveactivity"
+				return n
+			}(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "liveactivity", r.Header.Get("apns-push-type"))
+				assert.Equal(t, "com.testapp.push-type.liveactivity", r.Header.Get("apns-topic"))
+			}),
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			server := httptest.NewServer(testCase.handler)
+			defer server.Close()
+
+			_, err := mockClient(server.URL).Push(testCase.notification)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestPushTypeLiveActivityHeaderWithTopicHeader(t *testing.T) {
+	n := mockNotification()
+	n.PushType = apns.PushTypeLiveActivity
+	n.Topic = "com.testapp"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "liveactivity", r.Header.Get("apns-push-type"))
+		assert.Equal(t, "com.testapp.push-type.liveactivity", r.Header.Get("apns-topic"))
 	}))
 	defer server.Close()
 	_, err := mockClient(server.URL).Push(n)
