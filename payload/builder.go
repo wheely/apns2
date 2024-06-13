@@ -25,6 +25,9 @@ const (
 	// See: https://developer.apple.com/documentation/usernotifications/unnotificationinterruptionlevel/
 	InterruptionLevelCritical EInterruptionLevel = "critical"
 
+	// LiveActivityEventStart is used to update live activity.
+	LiveActivityEventStart LiveActivityEvent = "start"
+
 	// LiveActivityEventUpdate is used to update live activity.
 	LiveActivityEventUpdate LiveActivityEvent = "update"
 
@@ -54,6 +57,8 @@ type aps struct {
 	DismissalDate     int64                  `json:"dismissal-date,omitempty"`
 	Event             LiveActivityEvent      `json:"event,omitempty"`
 	ContentState      map[string]interface{} `json:"content-state,omitempty"`
+	Attributes        map[string]interface{} `json:"attributes,omitempty"`
+	AttributesType    string                 `json:"attributes-type,omitempty"`
 }
 
 type alert struct {
@@ -400,6 +405,29 @@ func (p *Payload) UnsetRelevanceScore() *Payload {
 // {"aps":{"content-state":{"key1":"value1","key2":"value2"}}}
 func (p *Payload) ContentState(contentState map[string]interface{}) *Payload {
 	p.aps().ContentState = contentState
+	return p
+}
+
+// Sets attributes dictionary in payload. The dictionary that contains data you pass to a Live Activity that you start
+// with a remote push notification. For more information, see Updating and ending your Live Activity with ActivityKit push notifications.
+//
+// See: https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/generating_a_remote_notification
+//
+// {"aps":{"attributes":{"key1":"value1","key2":"value2"}}}
+func (p *Payload) Attributes(attributes map[string]interface{}) *Payload {
+	p.aps().Attributes = attributes
+	return p
+}
+
+// Sets attributes type in payload. A string you use when you start a Live Activity with a remote push notification.
+// It must match the name of the structure that describes the dynamic data that appears in a Live Activity.
+// For more information, see Updating and ending your Live Activity with ActivityKit push notifications.
+//
+// See: https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/generating_a_remote_notification
+//
+// {"aps":{"attributes-type":"SomeAttributesType"}}
+func (p *Payload) AttributesType(attributesType string) *Payload {
+	p.aps().AttributesType = attributesType
 	return p
 }
 

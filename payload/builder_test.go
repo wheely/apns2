@@ -248,10 +248,48 @@ func TestContentState(t *testing.T) {
 	assert.Equal(t, `{"aps":{"content-state":{"content":"bar","state":"new","title":"foo"}}}`, string(b))
 }
 
-func TestEvent(t *testing.T) {
-	payload := NewPayload().Event(LiveActivityEventUpdate)
+func TestEventUpdate(t *testing.T) {
+	testCases := []struct {
+		event  LiveActivityEvent
+		result string
+	}{
+		{
+			event:  LiveActivityEventStart,
+			result: `{"aps":{"event":"start"}}`,
+		},
+		{
+			event:  LiveActivityEventUpdate,
+			result: `{"aps":{"event":"update"}}`,
+		},
+		{
+			event:  LiveActivityEventEnd,
+			result: `{"aps":{"event":"end"}}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("event %s", tc.event), func(t *testing.T) {
+			payload := NewPayload().Event(tc.event)
+			b, _ := json.Marshal(payload)
+			assert.Equal(t, tc.result, string(b))
+		})
+	}
+}
+
+func TestAttributes(t *testing.T) {
+	payload := NewPayload().Attributes(map[string]interface{}{
+		"content": "bar",
+		"state":   "new",
+		"title":   "foo",
+	})
 	b, _ := json.Marshal(payload)
-	assert.Equal(t, `{"aps":{"event":"update"}}`, string(b))
+	assert.Equal(t, `{"aps":{"attributes":{"content":"bar","state":"new","title":"foo"}}}`, string(b))
+}
+
+func TestAttributesType(t *testing.T) {
+	payload := NewPayload().AttributesType("SomeAttributesType")
+	b, _ := json.Marshal(payload)
+	assert.Equal(t, `{"aps":{"attributes-type":"SomeAttributesType"}}`, string(b))
 }
 
 func TestTimestamp(t *testing.T) {
