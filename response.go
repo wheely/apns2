@@ -132,6 +132,11 @@ type Response struct {
 	// If the value of StatusCode is 410, this is the last time at which APNs
 	// confirmed that the device token was no longer valid for the topic.
 	Timestamp Time
+
+	// ApnsUpdateToken is returned by APNs when the notification payload contains
+	// "input-push-token": 1. It can be used to send subsequent Live Activity
+	// update pushes without waiting for the app to register the token.
+	ApnsUpdateToken string
 }
 
 // Sent returns whether or not the notification was successfully sent.
