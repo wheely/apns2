@@ -59,6 +59,7 @@ type aps struct {
 	ContentState      map[string]interface{} `json:"content-state,omitempty"`
 	Attributes        map[string]interface{} `json:"attributes,omitempty"`
 	AttributesType    string                 `json:"attributes-type,omitempty"`
+	InputPushToken    int                    `json:"input-push-token,omitempty"`
 }
 
 type alert struct {
@@ -428,6 +429,19 @@ func (p *Payload) Attributes(attributes map[string]interface{}) *Payload {
 // {"aps":{"attributes-type":"SomeAttributesType"}}
 func (p *Payload) AttributesType(attributesType string) *Payload {
 	p.aps().AttributesType = attributesType
+	return p
+}
+
+// Requests that APNs issue a new update push token to the device when starting
+// a Live Activity via a remote push notification, for devices running iOS
+// 18/iPadOS 18 or later. The token itself is delivered to the app via
+// ActivityKit's push-token-updates callback, not returned to the sender.
+//
+// See: https://developer.apple.com/documentation/activitykit/starting-and-updating-live-activities-with-activitykit-push-notifications
+//
+// {"aps":{"input-push-token":1}}
+func (p *Payload) InputPushToken() *Payload {
+	p.aps().InputPushToken = 1
 	return p
 }
 
